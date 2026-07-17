@@ -1,0 +1,67 @@
+## [RELEASE v2.6.0] - DATE: 2026-07-09
+
+---
+
+### 📐 FORMATTING RULES (MANDATORY)
+- Every bullet point MUST start with a past-tense verb (e.g. Added, Fixed, Removed, Updated, Improved).
+- Use **bold** to highlight the component or area affected (e.g. **Auth Module**, **API Gateway**).
+- Keep each bullet to a single line — no multi-line bullets.
+- Use sentence case, not title case (e.g. "Fixed login timeout" not "Fixed Login Timeout").
+- Do NOT use inline code ticks unless referencing an exact function or file name.
+- Date format is strictly: YYYY-MM-DD.
+
+---
+
+### 🎙️ TONE & VOICE
+- Write for a technical audience — developers, DevOps, and QA engineers.
+- Be concise and factual. Avoid marketing language (e.g. "exciting", "revolutionary").
+- Passive constructions are permitted but active voice is preferred.
+
+---
+
+### 🚀 Added Features
+*(Place user-submitted new features here as neat bullet points)*
+
+### 🐛 Stability & Bug Fixes
+*(Place user-submitted patches, hotfixes, or refactors here)*
+
+### ⚡ Performance Improvements
+*(Place user-submitted speed, memory, or efficiency gains here)*
+
+### 🗑️ Deprecated
+*(List features or APIs that are still functional but scheduled for removal in a future release)*
+
+### ❌ Removed
+*(List features, flags, or endpoints permanently removed in this release)*
+
+### 🔒 Security
+*(List CVE patches, auth hardening, dependency upgrades with known vulnerabilities)*
+
+---
+
+### 🚫 DO NOT INCLUDE
+- Internal ticket numbers (e.g. JIRA-1234) unless explicitly provided by the user.
+- Developer names or personal attribution.
+- Speculative future plans or roadmap items.
+- Any information not present in the user's raw input — do not invent facts.
+
+---
+
+### ✅ EXAMPLE ENTRY (for reference only — do not copy verbatim)
+
+## [RELEASE v2.5.0] - DATE: 2026-06-01
+### 🚀 Added Features
+- Added **OAuth2 support** to the user authentication flow.
+- Added **dark mode toggle** to the dashboard settings panel.
+
+### 🐛 Stability & Bug Fixes
+- Fixed **session expiry** logic that caused users to be logged out prematurely.
+- Refactored **database connection pool** to eliminate race condition on startup.
+
+### ⚡ Performance Improvements
+- Improved **search indexing** speed by 40% through async batch processing.
+
+### 🔒 Security
+- Updated **jsonwebtoken** dependency to patch CVE-2026-0001.
+
+---
