@@ -70,27 +70,36 @@ You'll need:
 ## Setup
 
 ```bash
-# 1. Go into the project folder
-cd multi-agents
+# 1. Go into the project folder and verify you're in the project root
+cd <your-project-folder>
+test -f streamlit_app.py -a -f agent_1.py && echo "You are in the project folder." || echo "Not in the project folder. Run: cd <your-project-folder>"
 
-# 2. Create a virtual environment
-python -m venv .venv
+# 2. Homebrew installation
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 3. Install Pyton 3.11
+brew install python@3.11
+
+# 4. Create a virtual environment (prefer python=3.11)
+python --version
+python -m venv .venv || python3.11 -m venv .venv
 source .venv/bin/activate
 
-# 3. Install everything
+# 5. Install everything
 pip install pydantic-ai streamlit nest_asyncio mcp-server-git
 
-# 4. Add your Gemini key
+# 6. Add your Google key and Gemini key
 export GOOGLE_API_KEY="your-api-key-here"
+export GEMINI_API_KEY="$GOOGLE_API_KEY"
 
-# 5. Initialise the git repo the agent will commit into
+# 7. Initialise the git repo the agent will commit into
 cd my-git-repo
 git init
 git config user.name "trainer"
 git config user.email "trainer@thoughtworks.com"
 cd ..
 
-# 6. Launch the dashboard
+# 8. Launch the dashboard
 streamlit run streamlit_app.py
 ```
 
