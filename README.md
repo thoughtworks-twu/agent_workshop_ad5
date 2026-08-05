@@ -60,50 +60,49 @@ multi-agents/
 
 ## Before you start
 
-You'll need:
-- Python 3.11 or newer
-- A Gemini API key (the workshop uses `gemini-2.5-flash`)
-- `git` on your PATH
+Make sure you have:
+- A Google AI Studio API key for Gemini
+- `git` on your `PATH`
+
+On macOS, the setup script installs Python 3.11 if it is not already available, then creates the virtual environment and initialises the workshop git repository.
 
 ---
 
 ## Setup
 
 ```bash
-# 1. Go into the project folder and verify you're in the project root
+# 1. Go to the project root
 cd <your-project-folder>
-test -f streamlit_app.py -a -f agent_1.py && echo "You are in the project folder." || echo "Not in the project folder. Run: cd <your-project-folder>"
 
-# 2. Homebrew installation
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+# 2. Run the bootstrap script and enter the requested values
+scripts/setup_workshop.sh
 
-# 3. Install Pyton 3.11
-brew install python@3.11
-
-# 4. Create a virtual environment (prefer python=3.11)
-python --version
-python -m venv .venv || python3.11 -m venv .venv
-source .venv/bin/activate
-
-# 5. Install everything
-pip install pydantic-ai streamlit nest_asyncio mcp-server-git
-
-# 6. Add your Google key and Gemini key
-export GOOGLE_API_KEY="your-api-key-here"
-export GEMINI_API_KEY="$GOOGLE_API_KEY"
-
-# 7. Initialise the git repo the agent will commit into
-cd my-git-repo
-git init
-git config user.name "trainer"
-git config user.email "trainer@thoughtworks.com"
-cd ..
-
-# 8. Launch the dashboard
-streamlit run streamlit_app.py
+# 3. Start the dashboard
+scripts/run_workshop.sh
 ```
 
 Then open [http://localhost:8501](http://localhost:8501).
+
+The setup script:
+
+- Installs Homebrew on macOS only if it is missing
+- Installs Python 3.11 with Homebrew only if no Python 3.11+ interpreter is already available
+- Creates `.venv` and installs the workshop dependencies
+- Creates `my-git-repo/`, runs `git init`, and configures `user.name` and `user.email` from the trainee-provided values
+- Saves the API key and trainee git identity in `.env.local` so later runs stay simple
+
+### Useful options
+
+```bash
+# Run setup and launch Streamlit immediately
+scripts/setup_workshop.sh --run
+
+# Override saved values explicitly
+scripts/setup_workshop.sh \
+  --api-key "your-api-key-here" \
+  --git-name "Your Name" \
+  --git-email "you@thoughtworks.com"
+```
 
 ---
 
