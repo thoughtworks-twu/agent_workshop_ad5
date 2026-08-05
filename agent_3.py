@@ -2,7 +2,7 @@ import os
 from dataclasses import dataclass
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.settings import ModelSettings
 
 REPO_PATH = os.path.abspath("./my-git-repo")
@@ -21,12 +21,12 @@ class RAGDeps:
     style_guide_file: str
     author: str
 
-gemini_brain = GeminiModel('gemini-2.5-flash')
+gemini_brain = GoogleModel('gemini-2.5-flash')
 
 my_agent = Agent(
     model=gemini_brain,
     # TODO: 1. Define the deps_type to be AppDeps for RunContext injection
-    #  2. Define the result_type to be ChangelogResult for structured output
+    #  2. Define the output_type to be ChangelogResult for structured output
     #  3. Define the model_settings to configure the temperature for deterministic output
     system_prompt=(
         "You are a strict release documentation compliance officer. "
@@ -70,15 +70,15 @@ async def run_agent_workflow(user_raw_commits: str) -> ChangelogResult:
     #TODO: 5. Create an instance of Deps with the appropriate values for repo_path, changelog_file, style_guide_file and author
     deps = ""
 
-    # result.data is a validated ChangelogResult instance
+    # result.output is a validated ChangelogResult instance
     result = await my_agent.run(
         f"Format these raw developer commits into a compliant changelog entry:\n"
         f"{user_raw_commits}",
         deps=deps,
     )
 
-    print(f"Version : {result.data.version}")
-    print(f"Summary : {result.data.summary}")
+    print(f"Version : {result.output.version}")
+    print(f"Summary : {result.output.summary}")
 
     #TODO: 6. Return the content to be saved to the changelog file using the save_changelog tool
     return ""

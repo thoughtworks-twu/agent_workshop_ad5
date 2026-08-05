@@ -3,13 +3,14 @@ import os
 from dataclasses import dataclass
 from pydantic import BaseModel
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.gemini import GeminiModel
+from pydantic_ai.models.google import GoogleModel
 from pydantic_ai.settings import ModelSettings
-from pydantic_ai.mcp import MCPServerStdio
+from pydantic_ai.mcp import MCPToolset
+from fastmcp.client.transports import StdioTransport
 
 REPO_PATH = os.path.abspath(os.path.join(os.getcwd(), "my-git-repo"))  # still needed for git_server
 os.makedirs(REPO_PATH, exist_ok=True)
-gemini_brain = GeminiModel('gemini-2.5-flash')
+gemini_brain = GoogleModel('gemini-2.5-flash')
 
 # ── 1. BaseModel — structured output the formatting agent must return ─────────
 class ChangelogResult(BaseModel):
@@ -26,17 +27,19 @@ class RAGDeps:
     author: str
 
 # Redirect the stdio server path through local proxy bridge
-git_server = MCPServerStdio(
-    command="python",
-    args=["mcp_runtime_bridge.py", "--repository", REPO_PATH],
-    env={**os.environ}
+git_toolset = MCPToolset(
+    StdioTransport(
+        command="python",
+        args=["mcp_runtime_bridge.py", "--repository", REPO_PATH],
+        env={**os.environ},
+    )
 )
 
 # ── Phase 1 agent: RAG + formatting (built on agent_3) ───────────────────────
 my_agent = Agent(
     model=gemini_brain,
     # TODO: 1. Define the deps_type to be AppDeps for RunContext injection
-    #  2. Define the result_type to be ChangelogResult for structured output
+    #  2. Define the output_type to be ChangelogResult for structured output
     #  3. Define the model_settings to configure the temperature for deterministic output
     system_prompt=(
         "You are a strict release documentation compliance officer. "
@@ -71,7 +74,7 @@ def save_changelog(ctx: RunContext[RAGDeps], content: str) -> str:
 # ── Phase 2 agent: git commit via MCP ────────────────────────────────────────
 git_agent = Agent(
     model=gemini_brain,
-    #TODO: 8. Use the git MCPServerStdio instance to configure the agent's MCP server
+    #TODO: 8. Configure the agent to use the Git MCP toolset.
     system_prompt=(
         "You are an automated DevOps assistant. Use your available git tools to stage "
         "and commit changes to the repository history. Keep tool arguments clean."
@@ -92,8 +95,8 @@ async def run_agent_workflow(user_raw_commits: str) -> str:
         f"{user_raw_commits}",
         deps=deps,
     )
-    print(f"Version : {result.data.version}")
-    print(f"Summary : {result.data.summary}")
+    print(f"Version : {result.output.version}")
+    print(f"Summary : {result.output.summary}")
 
     # --- Phase 2: Git Version Management via MCP ---
     git_prompt = (
@@ -103,6 +106,6 @@ async def run_agent_workflow(user_raw_commits: str) -> str:
         f"2. Commit the staged file with a clean, descriptive log message."
     )
 
-    async with git_agent.run_mcp_servers():
-        #TODO: 9. Use the git_agent to run the git_prompt and capture the response
-        return ""
+    
+    #TODO: 9. Use the git_agent to run the git_prompt and capture the response
+    return ""
