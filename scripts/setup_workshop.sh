@@ -106,7 +106,7 @@ create_or_refresh_venv() {
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
   python -m pip install --upgrade pip
-  python -m pip install "pydantic-ai==2.17.0" streamlit nest_asyncio mcp-server-git
+  python -m pip install -r "$PROJECT_ROOT/requirements.txt"
 }
 
 read_env_file_value() {

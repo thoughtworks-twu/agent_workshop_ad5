@@ -1,0 +1,6 @@
+pydantic-ai==2.17.0
+streamlit
+nest_asyncio
+mcp-server-git
+requests
+load-dotenv
