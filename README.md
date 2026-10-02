@@ -64,7 +64,11 @@ Make sure you have:
 - A Google AI Studio API key for Gemini
 - `git` on your `PATH`
 
-On macOS, the setup script installs Python 3.11 if it is not already available, then creates the virtual environment and initialises the workshop git repository.
+Setup supports macOS and Linux and installs Homebrew if it is missing, then installs UV
+through Homebrew if needed. The official Homebrew installer may ask for confirmation or
+administrator credentials. On Linux, install Homebrew's documented compiler and development
+tool prerequisites first; the setup script does not install OS packages. Network access is
+required to bootstrap Homebrew, provision Python 3.11, and synchronize dependencies.
 
 ---
 
@@ -85,11 +89,19 @@ Then open [http://localhost:8501](http://localhost:8501).
 
 The setup script:
 
-- Installs Homebrew on macOS only if it is missing
-- Installs Python 3.11 with Homebrew only if no Python 3.11+ interpreter is already available
-- Creates `.venv` and installs the workshop dependencies
+- Installs Homebrew through its official installer when it is not already available and
+  installs UV through Homebrew when needed
+- Installs the Python 3.11 version selected by `.python-version` through UV
+- Uses `pyproject.toml` as the sole runtime dependency manifest and synchronizes `.venv` from the committed `uv.lock` with `uv sync --locked`
 - Creates `my-git-repo/`, runs `git init`, and configures `user.name` and `user.email` from the trainee-provided values
 - Saves the API key and trainee git identity in `.env.local` so later runs stay simple
+- Launches Streamlit through `uv run --locked` when `--run` is specified
+
+All project setup and launch commands use UV; do not activate `.venv` or invoke executables
+from it directly. Homebrew commands are used only to bootstrap the prerequisite toolchain;
+project Python and dependency operations remain UV-managed. The standalone launcher locates
+an installed Homebrew environment if UV is not already on `PATH`; if UV is still unavailable,
+it directs the learner back to setup.
 
 ### Useful options
 
@@ -175,11 +187,13 @@ When Session 4 runs, every JSON-RPC frame between `git_agent` and the MCP server
 
 ## If something goes wrong
 
-**`FileNotFoundError: style_guide.txt`** — make sure you're running `streamlit run` from inside the `multi-agents/` directory, not a parent folder.
+**`FileNotFoundError: style_guide.txt`** — launch the app with `scripts/run_workshop.sh` or
+`scripts/setup_workshop.sh --run` from the project checkout.
 
 **Session 4 git commit fails** — the `my-git-repo` folder to be a git folder before the agent runs. Run the `git init` and setup user.name and user.email.
 
-**`GOOGLE_API_KEY` not found** — export the key in the same terminal session you're running Streamlit from.
+**`GOOGLE_API_KEY` not found** — rerun `scripts/setup_workshop.sh` to save the key in
+`.env.local`, then start the app with `scripts/run_workshop.sh`.
 
 **MCP traffic log is empty** — check that `mcp-server-git` is installed and that `mcp_runtime_bridge.py` is in the project root.
 
