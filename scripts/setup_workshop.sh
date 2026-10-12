@@ -3,9 +3,9 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-VENV_DIR="$PROJECT_ROOT/.venv"
 ENV_FILE="$PROJECT_ROOT/.env.local"
 REPO_DIR="$PROJECT_ROOT/my-git-repo"
+HOMEBREW_INSTALL_URL='https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh'
 
 usage() {
   cat <<'EOF'
@@ -34,6 +34,93 @@ fail() {
   exit 1
 }
 
+find_homebrew() {
+  local brew_path=''
+  local platform=''
+
+  brew_path="$(command -v brew 2>/dev/null || true)"
+  if [[ -n "$brew_path" ]]; then
+    printf '%s\n' "$brew_path"
+    return 0
+  fi
+
+  platform="$(uname -s)"
+  case "$platform" in
+    Darwin)
+      for brew_path in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [[ -x "$brew_path" ]]; then
+          printf '%s\n' "$brew_path"
+          return 0
+        fi
+      done
+      ;;
+    Linux)
+      brew_path='/home/linuxbrew/.linuxbrew/bin/brew'
+      if [[ -x "$brew_path" ]]; then
+        printf '%s\n' "$brew_path"
+        return 0
+      fi
+      ;;
+  esac
+
+}
+
+bootstrap_homebrew() {
+  local installer_path=''
+  local platform=''
+
+  platform="$(uname -s)"
+  case "$platform" in
+    Darwin|Linux) ;;
+    *) fail "Unsupported operating system: $platform. Homebrew bootstrap supports macOS and Linux." ;;
+  esac
+
+  BREW_BIN="$(find_homebrew)"
+  if [[ -n "$BREW_BIN" ]]; then
+    return
+  fi
+
+  command -v curl >/dev/null 2>&1 || fail 'curl is required to download the official Homebrew installer.'
+  log 'Homebrew was not found. Downloading its official installer; follow its confirmation and permission prompts.'
+  installer_path="$(mktemp "${TMPDIR:-/tmp}/homebrew-install.XXXXXX")" || fail 'Could not create a temporary file for the Homebrew installer.'
+  if ! curl -fsSL "$HOMEBREW_INSTALL_URL" -o "$installer_path"; then
+    rm -f "$installer_path"
+    fail 'Could not download the official Homebrew installer. Check network access and rerun setup.'
+  fi
+  if ! /bin/bash "$installer_path"; then
+    rm -f "$installer_path"
+    fail "The Homebrew installer failed. On Linux, install Homebrew's documented build prerequisites and rerun setup."
+  fi
+  rm -f "$installer_path"
+
+  BREW_BIN="$(find_homebrew)"
+  [[ -n "$BREW_BIN" ]] || fail 'Homebrew installer completed, but the brew executable was not found in PATH or a standard installation prefix.'
+}
+
+initialize_homebrew_environment() {
+  local shellenv_output=''
+
+  if ! shellenv_output="$("$BREW_BIN" shellenv)"; then
+    fail 'Could not initialize the Homebrew environment with brew shellenv.'
+  fi
+  [[ -n "$shellenv_output" ]] || fail 'Homebrew returned an empty environment from brew shellenv.'
+  eval "$shellenv_output" || fail 'Could not apply the Homebrew environment returned by brew shellenv.'
+}
+
+ensure_uv() {
+  bootstrap_homebrew
+  initialize_homebrew_environment
+
+  if ! command -v uv >/dev/null 2>&1; then
+    log 'UV was not found. Installing it through Homebrew.'
+    if ! "$BREW_BIN" install uv; then
+      fail 'Homebrew could not install UV. Check the Homebrew output and rerun setup.'
+    fi
+  fi
+
+  command -v uv >/dev/null 2>&1 || fail 'UV is still unavailable after Homebrew setup. Check PATH and the Homebrew installation.'
+}
+
 is_placeholder_value() {
   local value="$1"
 
@@ -47,66 +134,14 @@ is_placeholder_value() {
   esac
 }
 
-version_ge() {
-  local left="$1"
-  local right="$2"
-  [[ "$(printf '%s\n%s\n' "$right" "$left" | sort -V | tail -n1)" == "$left" ]]
-}
+sync_project_environment() {
+  [[ -f "$PROJECT_ROOT/.python-version" ]] || fail 'Missing .python-version in the project root.'
+  [[ -f "$PROJECT_ROOT/uv.lock" ]] || fail 'Missing uv.lock. Run uv lock to generate the project lockfile.'
 
-install_homebrew_if_needed() {
-  if command -v brew >/dev/null 2>&1; then
-    return
-  fi
-
-  [[ "$(uname -s)" == "Darwin" ]] || fail 'Homebrew is required automatically only on macOS. Install Python 3.11+ manually on this OS.'
-  log 'Homebrew not found. Installing Homebrew.'
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-  if [[ -x /opt/homebrew/bin/brew ]]; then
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-  elif [[ -x /usr/local/bin/brew ]]; then
-    eval "$(/usr/local/bin/brew shellenv)"
-  fi
-
-  command -v brew >/dev/null 2>&1 || fail 'Homebrew installation finished, but brew is still not on PATH.'
-}
-
-ensure_python_311() {
-  local candidate
-
-  for candidate in python3.11 python3 python; do
-    if command -v "$candidate" >/dev/null 2>&1; then
-      local version
-      version="$($candidate -c 'import sys; print(".".join(map(str, sys.version_info[:3])))')"
-      if version_ge "$version" '3.11.0'; then
-        printf '%s' "$candidate"
-        return
-      fi
-    fi
-  done
-
-  install_homebrew_if_needed
-  log 'Installing python@3.11 via Homebrew.'
-  brew install python@3.11
-
-  command -v python3.11 >/dev/null 2>&1 || fail 'python3.11 is not available after installation.'
-  printf '%s' 'python3.11'
-}
-
-create_or_refresh_venv() {
-  local python_bin="$1"
-
-  if [[ ! -d "$VENV_DIR" ]]; then
-    log "Creating virtual environment with $python_bin."
-    "$python_bin" -m venv "$VENV_DIR"
-  else
-    log 'Virtual environment already exists. Reusing it.'
-  fi
-
-  # shellcheck disable=SC1091
-  source "$VENV_DIR/bin/activate"
-  python -m pip install --upgrade pip
-  python -m pip install -r "$PROJECT_ROOT/requirements.txt"
+  cd "$PROJECT_ROOT"
+  log 'Installing the pinned Python version and synchronizing the locked project environment with UV.'
+  uv python install "$(cat "$PROJECT_ROOT/.python-version")"
+  uv sync --locked
 }
 
 read_env_file_value() {
@@ -208,7 +243,7 @@ start_streamlit() {
   export GEMINI_API_KEY="$API_KEY"
   cd "$PROJECT_ROOT"
   log 'Starting Streamlit on http://localhost:8501.'
-  exec "$VENV_DIR/bin/streamlit" run streamlit_app.py
+  exec uv run --locked streamlit run streamlit_app.py
 }
 
 API_KEY="${GOOGLE_API_KEY:-}"
@@ -251,14 +286,13 @@ done
 
 [[ -f "$PROJECT_ROOT/streamlit_app.py" && -f "$PROJECT_ROOT/agent_1.py" ]] || fail 'Run this script from the workshop repository. Expected streamlit_app.py and agent_1.py in the project root.'
 command -v git >/dev/null 2>&1 || fail 'git is required on PATH.'
+ensure_uv
 
 prompt_for_value API_KEY 'Google AI Studio API key' true
 prompt_for_value GIT_NAME 'Git user name'
 prompt_for_value GIT_EMAIL 'Git user email (user@thoughtworks.com)'
 
-PYTHON_BIN="$(ensure_python_311)"
-log "Using Python interpreter: $PYTHON_BIN"
-create_or_refresh_venv "$PYTHON_BIN"
+sync_project_environment
 write_env_file "$API_KEY" "$GIT_NAME" "$GIT_EMAIL"
 ensure_git_repo "$GIT_NAME" "$GIT_EMAIL"
 
@@ -267,12 +301,8 @@ cat <<EOF
 Setup complete.
 
 Next steps:
-  1. source "$ENV_FILE"
-  2. source "$VENV_DIR/bin/activate"
-  3. streamlit run streamlit_app.py
-
-Or use:
   scripts/run_workshop.sh
+
 EOF
 
 if [[ "$RUN_AFTER_SETUP" == 'true' ]]; then
