@@ -1,0 +1,12 @@
+[project]
+name = "pydantic-weather"
+version = "0.1.0"
+description = "Simple weather agent"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "load-dotenv>=0.1.0",
+    "pydantic>=2.13.4",
+    "pydantic-ai>=2.11.0",
+    "requests>=2.34.2",
+]

@@ -1,0 +1,16 @@
+[project]
+name = "agent-workshop-ad5"
+version = "0.1.0"
+description = "Pydantic foundational learning path for AI agents"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "pydantic-ai==2.17.0",
+    "streamlit",
+    "nest-asyncio",
+    "mcp-server-git",
+    "requests",
+    "load-dotenv",
+]
+
+[tool.uv]
+package = false
